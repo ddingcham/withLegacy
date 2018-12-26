@@ -156,3 +156,48 @@ Sale 객체가 디스플레이에 어떤 영향(delegating)을 미치는지에 �
 개별 소프트웨어 단위들에 대해 테스트 루틴을 작성하다 보면,
 #### 작고 이해하기 쉬운 소프트웨어 단위들이 얻어지게 된다.
 이는 우리가 작성한 코드에 대한 합리적인 판단을 내리는 데 도움이 된다.
+
+### 가짜 객체의 특성  
+* 가짜 객체의 양면성  
+  // 참조 -> 주목해야할 점들 -> FakeDisplay.getLastLine() // Fake Object만의 책임  
+  #### Sale 클래스는 가짜 화면을 Display 타입으로 바라보지만
+  #### 테스트할 때만큼은 FakeDisplay 타입으로 바라봐야 한다.
+
+* 가짜 객체의 핵심  
+  // 참조 -> Ex] POS 시스템  
+  객체 지향 언어는 대체로 FakeDisplay 클래스처럼 간단한 클래스를 사용해서 구현한다.  
+  * 객체 지향이 아닌 언어의 경우  
+    * 대체 함수를 정의  
+    * 테스트 시에 접근할 수 있는 값들을 전역 자료구조에 저장  
+    * 자세한 설명은 19장 참조  
+  
+### 모조 객체(Mock Object)  
+```
+모조 객체는 매우 강력한 도구이고, 다양한 프레임워크가 존재  
+모조 객체 프레임워크가 모든 언어에서 사용 가능한 것은 아니다.
+```
+#### 대부분의 경우 간단한 가짜 객체만으로도 충분하다.
+#### 만일 Fake Object를 많이 사용해야 한다면, Mock Object 사용을 고려할 만하다.
+
+
+```
+public class SaleTest
+{
+ public void testDisplayAnItem() {
+  MockDisplay display = new MockDisplay();
+  display.setExpectation("showLine", "Milk $3.99");
+  Sale sale = new Sale(display);
+  sale.scan("1");
+  display.verify();
+ }
+}
+```
+* Mock Object를 활용한 테스트 루틴  
+  * 장점  
+    * 예상되는 메소드 호출을 모조 객체에 미리 알려주고,  
+      > setExpectation()
+    * 실제로 메소드가 호출됐는지 검증하도록 지시할 수 있다.  
+      > verify()  
+  * verify()  
+    **Sale.scan() 내부에서** 설정 값("showLine", "Milk $3.99")대로 작업이 수행됐는지 검증  
+    
