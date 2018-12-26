@@ -60,4 +60,99 @@ public class NetworkBridge
   **분리**에 사용되는 기법은 매우 다양하다. (정답이 없는 문제라고 하는)  
   **감지**의 경우에는 일반적인 기법이 존재한다. ((아래)협업 클래스 위장하기)  
 
-## 협업 클래스 위장하기 _ 
+## 협업 클래스 위장하기 _ Fake Object(가짜/위장 객체)  
+#### 특정 코드에 대한 독립적인 테스트를 위해 다른 코드에 대한 의존 관계 제거가 필요하다.
+#### 다른 코드를 별도의 코드(Fake Object)로 대체할 수 있다면 .....
+
+### Fake Object
+가짜 객체란 어떤 클래스를 테스트할 때 그 클래스의 **협업 클래스**를 모방하는 객체를 말한다.  
+
+### Ex] POS 시스템  
+
+* POS 시스템 내의 Sale 클래스  
+```
+public class Sale
+{
+  public void scan(String barcode)
+  {
+    1. 고객이 구매중인 품목의 바코드를 읽어 "품목정보"를 얻는다.
+      1) 품목정보 : 품목의 이름과 가격
+    2. "품목정보"를 금전 등록기의 디스플레이 화면(ArtR56Display)에 출력한다.
+  }
+}
+```
+
+* 화면에 출력하는 코드에 대한 테스트  
+  > 코드 내부의 **어느 곳**에서 화면 갱신을 수행하는지 **정확히 구분**할 수만 있다면 쉬워진다.  
+  
+  * 정확한 구분을 위해 책임을 분리  
+    * \[Sale.scan(barcode:String)\]  
+      * Sale.scan()의 책임  
+        * 바코드를 읽어 "품목정보"를 얻는다.  
+        * "품목정보"를 금전등록기의 디스플레이 화면(ArtR56Display)에 출력한다.  
+    * \[Sale.scan(barcode:String)\] ---> \[ArtR56Display.showLine(line:String)\]  
+      * Sale.scan()의 책임  
+        * 바코드를 읽어 "품목정보"를 얻는다.  
+        * "품목정보"를 출력한다.
+      * ArtR56Display.showLine()의 책임
+        * 입력된 정보(line)를 금전등록기의 디스플레이 화면(ArtR56Display)에 출력한다.  
+        
+  * Fake Object 적용을 위한 추상 계층 추가  
+    ```
+    public interface Display
+    {
+     void showLine(String line);
+    }
+    ```
+    * \[Sale.scan()\] ---> \[Display.showLine(line:String)\]
+      * Display.showLine()의 책임  
+        * 입력된 정보(line)를 디스플레이 화면에 출력한다.  
+      * Display의 구현체가 ArtR56Display인 경우  
+        * 입력된 정보(line)를 금전등록기의 디스플레이 화면(ArtR56Display)에 출력한다.  
+      * Display의 구현체가 FakeDisplay인 경우  
+        * 입력된 정보(line)를 우리가 원하는 **가짜 디스플레이 화면**에 출력한다.  
+      #### Sale의 특정 코드에 대한 독립적인 테스트를 위해 코드 수정이 필요 없어진다.  
+      #### Display를 통한 확장에는 열려있지만 Sale의 특정 코드 수정에는 닫혀있다. // OCP  
+      
+  * Fake Object를 어떻게 활용(test)할 것인가  
+    ```
+    public class SaleTest
+    {
+     public void testDisplayAnItem()
+     {
+      FakeDisplay display = new FakeDisplay();
+      Sale sale = new Sale(display);
+      
+      sale.scan("1");
+      assertEquals("Milk $3.99", display.getLastLine());
+     }
+    }
+    ```
+    * 주목해야할 점들  
+      * testDiplayAnItem - 테스트명과 책임(테스트 범위)  
+        > sale.scan("1")  
+          >> 우리가 테스트하고자 하는 것은 바코드로부터 **무엇을** 읽어오는 지가 아니다.  
+          >> 우리는 **품목정보 출력**에 대한 테스트를 하고자 한다.  
+          >> **품목정보 출력**의 세부 알고리즘이 아닌 **출력 여부**에 대한  
+      * FakeDisplay.getLastLine() // Fake Object만의 책임  
+        > 독립적이고, 효율적인 테스트  
+        ```
+        public class FakeDisplay implements Display
+        {
+         private String lastLine = "";
+         public void showLine(String line) { lastLine = line; }
+         public String getLastLine() { return lastLine; }
+        }
+        ```
+        > 눈으로 하는 테스트 루틴과 코드로 하는 테스트 루틴  
+          >> 테스트를 위한 Fake Object가 어떻게 테스트를 지원하는 지  
+          >> lastLine(instance variable) 캡슐화 
+          >> getLastLine() 지원  
+          
+### 가짜 객체(Fake Object)가 진짜 테스트를 지원한다.
+실제 기능에 대한 테스트는 아니고,  
+Sale 객체가 디스플레이에 어떤 영향(delegating)을 미치는지에 그치지만...
+#### 적어도 버그의 원인이 Sale 클래스에 있는지 여부를 빠르게 판단하게 해준다.  
+개별 소프트웨어 단위들에 대해 테스트 루틴을 작성하다 보면,
+#### 작고 이해하기 쉬운 소프트웨어 단위들이 얻어지게 된다.
+이는 우리가 작성한 코드에 대한 합리적인 판단을 내리는 데 도움이 된다.
