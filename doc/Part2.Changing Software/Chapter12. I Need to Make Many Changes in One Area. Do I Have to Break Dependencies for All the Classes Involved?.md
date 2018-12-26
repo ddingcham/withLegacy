@@ -104,4 +104,56 @@ public Money getValue() {
 ## 조임 지점 (Pinch Point)
 
 ### 상위 수준의 교차 지점  
+대부분의 경우, 변경 작업을 위한 가장 좋은 교차 지점은 변경 대상 클래스의 public 메소드일 확률이 높음  ㅇㅈ
 
+#### 하지만, 간혹 public 메소드가 최선의 선택이 아닐 때가 있다.
+
+#### Ex] Invoice 예제의 확장  
+* 변경 요구사항 분석  
+  * Item 클래스 변경  
+    > Invoice 클래스에서 운송 비용의 계산 방법 변경  
+    > 운송 업체를 관리하기 위한 필드를 포함하도록 Item 클래스 변경  
+  * BillingStatement 클래스 변경  
+    > 운송 업체(Item 의 instance variable)별로 구분된 처리가 되도록 변경  
+    
+* 확장된 청구 시스템에서의 관계도  
+  * BillingStatement.makeStatement() ---> Invoice.addItem(item : Item)  
+  * Invoice.addItem(item : Item) ---> Item  
+  * Item.Constructor(id : int, price : Money)  
+   
+* 테스트 루틴의 작성 // test fail  
+  좀 더 효율적으로 변경 작업을 진행하려면...  
+  > 상위 수준의 교차 지점의 존재 여부를 확인  
+  * 장점  
+    * 의존 관계를 그리 많이 제거하지 않아도 된다.  
+    * 코드를 묶음 단위로 취급할 수 있다.
+    * **클래스들의 사양을 분명히 드러내는 테스트 루틴**  
+      > 좀 더 대규모의 리팩토링 보장  
+      
+  * BillingStatement의 테스트로부터 접근  
+    * BillingStatement의 테스트를 invariant로 이용  
+    * Invoice와 Item 클래스의 구조 변경  
+    
+  * 초기 테스트 루틴  
+    > BillingStatement, Invoice, Item을 전부 문서화하는 역할  
+    ```
+    void testSimpleStatement() {
+      Invoice invoice = new Invoice();
+      invoice.addItem(new Item(0, new Money(10));
+      BillingStatement statement = new BillingStatement();
+      statement.addInvoice(invoice);
+      assertEquals("", statement.makeStatement());
+    }
+    ```  
+    * 한 개의 Item(품목)을 갖는 Invoice(송장)에 대해 어떤 텍스트를 생성하는 지 확인  
+      * 다수의 루틴을 추가함으로써...  
+        > Invoice와 Item의 서로 다른 조합에 의해 Invoice가 어떻게 영향을 받는지 확인 가능  
+    * 봉합을 도입할 코드 영역을 고려하면서 테스트 케이스 작성 진행  
+    
+  * 왜 BillingStatement를 교차지점으로 사용했는가?  
+    * 클래스들의 **변경에 의한 영향 검출**을 만족시키는 유일한 위치  
+    * 가장 쉬운 곳은 아니지만, 적어도 모든 영향을 검출할 수 있는 지점  
+    #### 조임 지점 : 영향 스케치에서 영향이 집중되는 곳  
+    p254 밑에서 5번째 줄부터 다시하기...
+
+    
